@@ -28,7 +28,7 @@ VECTORSTORE_DIR = PROJECT_ROOT / ".chroma"
 # Per-provider default model names.
 DEFAULT_MODELS = {
     "openai": {"chat": "gpt-4o-mini", "embedding": "text-embedding-3-small"},
-    "google": {"chat": "gemini-1.5-flash", "embedding": "models/text-embedding-004"},
+    "google": {"chat": "gemini-2.5-flash", "embedding": "models/gemini-embedding-001"},
 }
 
 
