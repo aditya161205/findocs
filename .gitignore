@@ -22,3 +22,6 @@ env/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local editor / preview config (machine-specific paths)
+.claude/

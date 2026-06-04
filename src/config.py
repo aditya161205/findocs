@@ -18,9 +18,10 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+# Load .env from the project root regardless of the current working directory.
+load_dotenv(PROJECT_ROOT / ".env")
 DATA_DIR = PROJECT_ROOT / "data"
 SAMPLE_DOCS_DIR = DATA_DIR / "sample_docs"
 VECTORSTORE_DIR = PROJECT_ROOT / ".chroma"
