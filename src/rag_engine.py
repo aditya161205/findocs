@@ -16,7 +16,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from langchain_core.documents import Document
-from langchain_openai import ChatOpenAI
 
 from .config import settings
 from .prompts import QA_PROMPT
@@ -110,9 +109,24 @@ class RAGEngine:
     """Stateless query engine over the persisted vector store."""
 
     def __init__(self) -> None:
-        self.llm = ChatOpenAI(
+        self.llm = self._build_llm()
+
+    @staticmethod
+    def _build_llm():
+        """Construct the chat model for the configured provider (temp 0 — factual)."""
+        if settings.provider == "google":
+            from langchain_google_genai import ChatGoogleGenerativeAI
+
+            return ChatGoogleGenerativeAI(
+                model=settings.chat_model,
+                temperature=0,
+                google_api_key=settings.google_api_key,
+            )
+        from langchain_openai import ChatOpenAI
+
+        return ChatOpenAI(
             model=settings.chat_model,
-            temperature=0,  # factual extraction — no creativity
+            temperature=0,
             api_key=settings.openai_api_key,
         )
 

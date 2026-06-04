@@ -22,8 +22,8 @@ def main() -> int:
     parser.add_argument("--reset", action="store_true", help="Clear the index first.")
     args = parser.parse_args()
 
-    if not settings.has_openai_key:
-        print("ERROR: OPENAI_API_KEY is not set. See .env.example.", file=sys.stderr)
+    if not settings.has_api_key:
+        print("ERROR: no API key set (OPENAI_API_KEY or GOOGLE_API_KEY). See .env.example.", file=sys.stderr)
         return 1
 
     if args.reset:

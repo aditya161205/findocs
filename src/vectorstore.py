@@ -8,16 +8,25 @@ from __future__ import annotations
 
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
-from langchain_openai import OpenAIEmbeddings
 
 from .config import settings
 
 
-def get_embeddings() -> OpenAIEmbeddings:
-    if not settings.has_openai_key:
+def get_embeddings():
+    """Return the embedding model for the configured provider."""
+    if not settings.has_api_key:
         raise RuntimeError(
-            "OPENAI_API_KEY is not set. Copy .env.example to .env and add your key."
+            "No API key set. Copy .env.example to .env and add OPENAI_API_KEY "
+            "or GOOGLE_API_KEY."
         )
+    if settings.provider == "google":
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
+
+        return GoogleGenerativeAIEmbeddings(
+            model=settings.embedding_model, google_api_key=settings.google_api_key
+        )
+    from langchain_openai import OpenAIEmbeddings
+
     return OpenAIEmbeddings(model=settings.embedding_model, api_key=settings.openai_api_key)
 
 

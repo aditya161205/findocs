@@ -44,8 +44,8 @@ with st.sidebar:
     st.title("📊 FinDocs RAG")
     st.caption("Ask questions across your private financial documents.")
 
-    if not settings.has_openai_key:
-        st.error("`OPENAI_API_KEY` not set. Add it to a `.env` file and restart.")
+    if not settings.has_api_key:
+        st.error("No API key set. Add `OPENAI_API_KEY` or `GOOGLE_API_KEY` to `.env` and restart.")
 
     st.subheader("1 · Add documents")
     uploads = st.file_uploader(
@@ -89,8 +89,8 @@ ask = st.button("Ask", type="primary", disabled=not question)
 if ask:
     if collection_size() == 0:
         st.warning("No documents indexed yet — upload and index some on the left first.")
-    elif not settings.has_openai_key:
-        st.error("Cannot answer without `OPENAI_API_KEY`.")
+    elif not settings.has_api_key:
+        st.error("Cannot answer without an API key.")
     else:
         with st.spinner("Searching documents & composing answer…"):
             answer = get_engine().ask(question, top_k=top_k)

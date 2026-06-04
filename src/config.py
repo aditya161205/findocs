@@ -2,6 +2,12 @@
 
 All tunables live here so they can be explained in one place and overridden via
 environment variables (loaded from a local ``.env`` file if present).
+
+Two LLM providers are supported:
+  * ``openai`` — text-embedding-3-small + gpt-4o-mini
+  * ``google`` — Gemini, which has a free tier (no credit card)
+The provider is auto-detected from whichever API key is present, or can be
+forced with ``LLM_PROVIDER``.
 """
 
 from __future__ import annotations
@@ -19,6 +25,12 @@ DATA_DIR = PROJECT_ROOT / "data"
 SAMPLE_DOCS_DIR = DATA_DIR / "sample_docs"
 VECTORSTORE_DIR = PROJECT_ROOT / ".chroma"
 
+# Per-provider default model names.
+DEFAULT_MODELS = {
+    "openai": {"chat": "gpt-4o-mini", "embedding": "text-embedding-3-small"},
+    "google": {"chat": "gemini-1.5-flash", "embedding": "models/text-embedding-004"},
+}
+
 
 def _get_int(name: str, default: int) -> int:
     try:
@@ -34,16 +46,28 @@ def _get_float(name: str, default: float) -> float:
         return default
 
 
+def _detect_provider() -> str:
+    forced = os.getenv("LLM_PROVIDER", "").strip().lower()
+    if forced in DEFAULT_MODELS:
+        return forced
+    # Auto-detect: prefer the free option (Google) if its key is present.
+    if os.getenv("GOOGLE_API_KEY"):
+        return "google"
+    return "openai"
+
+
 @dataclass
 class Settings:
     """Runtime settings. Read once at import time; override via env vars."""
 
-    # --- LLM / embeddings provider ---
+    # --- Provider / keys ---
+    provider: str = field(default_factory=_detect_provider)
     openai_api_key: str = field(default_factory=lambda: os.getenv("OPENAI_API_KEY", ""))
-    chat_model: str = field(default_factory=lambda: os.getenv("CHAT_MODEL", "gpt-4o-mini"))
-    embedding_model: str = field(
-        default_factory=lambda: os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
-    )
+    google_api_key: str = field(default_factory=lambda: os.getenv("GOOGLE_API_KEY", ""))
+
+    # --- Models (default per provider, overridable) ---
+    _chat_model: str = field(default_factory=lambda: os.getenv("CHAT_MODEL", ""))
+    _embedding_model: str = field(default_factory=lambda: os.getenv("EMBEDDING_MODEL", ""))
 
     # --- Chunking ---
     # 1,000 chars (~250 tokens) keeps a single factsheet table or paragraph intact;
@@ -63,8 +87,20 @@ class Settings:
     persist_dir: str = field(default_factory=lambda: os.getenv("PERSIST_DIR", str(VECTORSTORE_DIR)))
 
     @property
-    def has_openai_key(self) -> bool:
-        return bool(self.openai_api_key and self.openai_api_key.strip())
+    def chat_model(self) -> str:
+        return self._chat_model or DEFAULT_MODELS[self.provider]["chat"]
+
+    @property
+    def embedding_model(self) -> str:
+        return self._embedding_model or DEFAULT_MODELS[self.provider]["embedding"]
+
+    @property
+    def api_key(self) -> str:
+        return self.google_api_key if self.provider == "google" else self.openai_api_key
+
+    @property
+    def has_api_key(self) -> bool:
+        return bool(self.api_key and self.api_key.strip())
 
 
 settings = Settings()
