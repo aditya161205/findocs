@@ -1,117 +1,109 @@
-# FinDocs RAG — Q&A over Private Financial Documents
+# FinDocs RAG
 
-Upload mutual-fund factsheets, annual reports, or RBI/SEBI circulars, ask
-questions in plain English, and get **precise answers with source citations and
-a confidence score** — grounded strictly in your own documents.
+A small Q&A app I built for asking questions over financial documents. You give
+it some PDFs (mutual fund factsheets, annual reports, RBI/SEBI circulars, a
+company's 10-K, whatever), and then you can ask questions in plain English and
+get answers back with the source it pulled them from and how confident it is.
 
-> Built to demonstrate a production-shaped **Retrieval-Augmented Generation
-> (RAG)** pipeline: document ingestion → chunking → embeddings → vector search →
-> grounded generation with citations.
+I made it mostly to get hands-on with RAG end to end: parsing docs, chunking
+them, embedding into a vector DB, and wiring up retrieval + an LLM so the answers
+actually stay grounded in the documents instead of being made up.
 
----
+## What it does
 
-## Features
-
-- **Ask natural-language questions** over a private corpus of financial PDFs/text.
-- **Source citations** — every answer points back to the file and page it came from.
-- **Confidence score** derived transparently from retrieval relevance (no black box).
-- **Refuses to hallucinate** — if the answer isn't in your documents, it says so.
-- **Persistent vector index** (ChromaDB) so you don't re-embed on every run.
-- **Two ways to use it:** a Streamlit web UI, or a CLI for batch indexing.
+- Answers questions using only the documents you give it.
+- Shows where each answer came from (file name + page number).
+- Gives a confidence score so you can tell when it's unsure.
+- Says "I couldn't find this in the documents" instead of guessing when the
+  answer isn't there.
+- Keeps the index on disk, so you don't have to re-embed everything every time
+  you restart.
+- Works either through a small Streamlit UI or from the command line.
 
 ## Stack
 
-| Layer            | Choice                                            |
-| ---------------- | ------------------------------------------------- |
-| Orchestration    | **LangChain**                                     |
-| Vector DB        | **ChromaDB** (persistent, cosine similarity)      |
-| Embeddings + LLM | **OpenAI** (`text-embedding-3-small`, `gpt-4o-mini`) |
-| PDF parsing      | **pypdf**                                         |
-| UI               | **Streamlit**                                     |
+- Python
+- LangChain for the RAG plumbing
+- ChromaDB as the vector store
+- OpenAI for embeddings and the chat model
+- pypdf for reading PDFs
+- Streamlit for the UI
 
 ## How it works
 
-```
-                 ┌──────────────┐      ┌──────────────┐
-   PDF/TXT/MD ──▶│  Ingestion   │ ───▶ │   Chunking   │   (1000 chars, 150 overlap)
-                 │ (pypdf etc.) │      │ Recursive    │
-                 └──────────────┘      └──────┬───────┘
-                                              │ embed (OpenAI)
-                                              ▼
-                                       ┌──────────────┐
-                                       │   ChromaDB   │  persistent vector store
-                                       └──────┬───────┘
-            question ──▶ embed ──▶ semantic search (top-k, cosine)
-                                              │
-                                              ▼
-                              keep chunks ≥ relevance floor
-                                              │
-                                              ▼
-                       numbered context ──▶ LLM (temp 0, "cite [n], no guessing")
-                                              │
-                                              ▼
-                       Answer + citations [1][2] + confidence %
-```
+The flow is pretty straightforward:
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the design rationale and
-the talking points you can use to explain each decision.
+1. Load the files and split them into ~1000-character chunks with a bit of
+   overlap, keeping track of which file and page each chunk came from.
+2. Embed the chunks and store them in ChromaDB.
+3. When you ask a question, embed it and pull back the most similar chunks.
+4. Drop anything that isn't similar enough. If nothing's left, just say it
+   wasn't found instead of calling the model.
+5. Hand the remaining chunks to the model with instructions to answer only from
+   them and to cite each one.
+6. Return the answer with its citations and a confidence number.
 
-## Quickstart
+The confidence score is intentionally simple so I can explain it: it's mostly
+based on how well the best chunk matched the question, plus a little bump if the
+other chunks agree. It's a measure of how good the retrieval was, not a
+guarantee the answer is correct.
+
+There's more detail and the reasoning behind each choice in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Running it
 
 ```bash
-# 1. Install
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# 2. Configure your OpenAI key
 cp .env.example .env
-# edit .env and set OPENAI_API_KEY=sk-...
+# put your OpenAI key in .env
 
-# 3. Index the bundled sample docs (or your own files)
+# index the sample docs (or point it at your own files)
 python ingest.py data/sample_docs
 
-# 4. Launch the UI
 streamlit run app.py
 ```
 
-Then ask things like:
+Some questions that work on the sample docs:
 
-- *"What is the expense ratio of the direct plan and the 1-year return?"*
-- *"How often must high-risk customers' KYC be updated?"*
-- *"Who is the fund manager and since when?"*
+- What's the expense ratio of the direct plan and the 1-year return?
+- How often do high-risk customers need their KYC updated?
+- Who's the fund manager and since when?
 
-You can also upload your own documents directly from the sidebar.
+You can also just upload files from the sidebar instead of using the CLI.
 
 ## Tests
 
-The chunking and citation/confidence logic are unit-tested and need **no API key
-or network**:
+The chunking and the confidence/citation logic have unit tests that don't need
+an API key or network:
 
 ```bash
 pytest -q
 ```
 
-## Project layout
+## Layout
 
 ```
-.
-├── app.py               # Streamlit UI
-├── ingest.py            # CLI: index documents into ChromaDB
-├── src/
-│   ├── config.py        # all tunables (chunk size, top-k, models, thresholds)
-│   ├── ingestion.py     # load + chunk documents (citable metadata)
-│   ├── vectorstore.py   # ChromaDB wrapper (embed / add / search / reset)
-│   ├── prompts.py       # grounded, citation-enforcing prompt
-│   └── rag_engine.py    # retrieve → assemble → generate → score
-├── data/sample_docs/    # synthetic factsheet + RBI-style circular (safe to demo)
-├── tests/
-└── docs/ARCHITECTURE.md
+app.py            Streamlit UI
+ingest.py         CLI for indexing documents
+src/
+  config.py       settings (chunk size, top-k, models, thresholds)
+  ingestion.py    loading + chunking
+  vectorstore.py  ChromaDB wrapper
+  prompts.py      the prompt
+  rag_engine.py   retrieval + answer generation
+data/sample_docs/ a couple of sample docs to try it on
+tests/
+docs/
 ```
 
-## Notes
+## A couple of notes
 
-- The bundled documents in `data/sample_docs/` are **synthetic** and for demo only.
-  Swap in real SEBI/RBI circulars or any company's 10-K to make it shine.
-- Your `.env` and the `.chroma/` index are git-ignored — no secrets or data leak
-  into the repo.
+The sample documents under `data/sample_docs/` are fake ones I wrote up so the
+app has something to run on out of the box. Swap in real documents to actually
+use it.
 
+The `.env` file and the local Chroma index are gitignored, so no keys or indexed
+data end up in the repo.
