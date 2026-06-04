@@ -1,5 +1,7 @@
 # FinDocs RAG — Q&A over Private Financial Documents
 
+[![tests](https://github.com/aditya161205/findocs-rag/actions/workflows/tests.yml/badge.svg)](https://github.com/aditya161205/findocs-rag/actions/workflows/tests.yml)
+
 Upload mutual-fund factsheets, annual reports, or RBI/SEBI circulars, ask
 questions in plain English, and get **precise answers with source citations and
 a confidence score** — grounded strictly in your own documents.
