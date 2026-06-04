@@ -1,4 +1,4 @@
-# 📊 FinDocs RAG — Q&A over Private Financial Documents
+# FinDocs RAG — Q&A over Private Financial Documents
 
 Upload mutual-fund factsheets, annual reports, or RBI/SEBI circulars, ask
 questions in plain English, and get **precise answers with source citations and
@@ -10,7 +10,7 @@ a confidence score** — grounded strictly in your own documents.
 
 ---
 
-## ✨ Features
+## Features
 
 - **Ask natural-language questions** over a private corpus of financial PDFs/text.
 - **Source citations** — every answer points back to the file and page it came from.
@@ -19,7 +19,7 @@ a confidence score** — grounded strictly in your own documents.
 - **Persistent vector index** (ChromaDB) so you don't re-embed on every run.
 - **Two ways to use it:** a Streamlit web UI, or a CLI for batch indexing.
 
-## 🧱 Stack
+## Stack
 
 | Layer            | Choice                                            |
 | ---------------- | ------------------------------------------------- |
@@ -29,7 +29,7 @@ a confidence score** — grounded strictly in your own documents.
 | PDF parsing      | **pypdf**                                         |
 | UI               | **Streamlit**                                     |
 
-## 🏗️ How it works
+## How it works
 
 ```
                  ┌──────────────┐      ┌──────────────┐
@@ -56,7 +56,7 @@ a confidence score** — grounded strictly in your own documents.
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the design rationale and
 the talking points you can use to explain each decision.
 
-## 🚀 Quickstart
+## Quickstart
 
 ```bash
 # 1. Install
@@ -82,7 +82,7 @@ Then ask things like:
 
 You can also upload your own documents directly from the sidebar.
 
-## 🧪 Tests
+## Tests
 
 The chunking and citation/confidence logic are unit-tested and need **no API key
 or network**:
@@ -91,7 +91,7 @@ or network**:
 pytest -q
 ```
 
-## 📁 Project layout
+## Project layout
 
 ```
 .
@@ -108,13 +108,13 @@ pytest -q
 └── docs/ARCHITECTURE.md
 ```
 
-## ⚠️ Notes
+## Notes
 
 - The bundled documents in `data/sample_docs/` are **synthetic** and for demo only.
   Swap in real SEBI/RBI circulars or any company's 10-K to make it shine.
 - Your `.env` and the `.chroma/` index are git-ignored — no secrets or data leak
   into the repo.
 
-## 📜 License
+## License
 
 MIT — see [`LICENSE`](LICENSE).
